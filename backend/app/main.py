@@ -23,6 +23,9 @@ from app.models import (
     SPILRecordInput,
     ScenarioRequest,
     WorkerRegistration,
+    WorkerUpdateRequest,
+    WalletAdjustmentRequest,
+    PolicyManagementRequest,
     ZONE_ID_MAP,
 )
 from app.services.aiims import run_aiims_decision, run_aiims_pipeline
@@ -515,6 +518,67 @@ def admin_get_worker_details(worker_id: str, authorization: str | None = Header(
         "spil": spil,
         "aiims_snapshots": snapshots
     }
+
+
+@app.put("/api/admin/workers/{worker_id}")
+def admin_update_worker(worker_id: str, payload: WorkerUpdateRequest, authorization: str | None = Header(None)):
+    verify_admin_token(authorization)
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    updated = db_update_worker(worker_id, updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Worker not found")
+    return {"message": "Worker updated successfully", "worker": sanitize_worker(updated)}
+
+
+@app.post("/api/admin/workers/{worker_id}/wallet/adjust")
+def admin_adjust_wallet(worker_id: str, payload: WalletAdjustmentRequest, authorization: str | None = Header(None)):
+    verify_admin_token(authorization)
+    _find_worker(worker_id)
+    wallet = record_zencoin_transaction(
+        worker_id, 
+        "admin_adjustment", 
+        payload.amount, 
+        f"admin-{uuid4().hex[:8]}", 
+        payload.reason
+    )
+    return {"message": "Wallet adjusted successfully", "wallet": wallet}
+
+
+@app.post("/api/admin/workers/{worker_id}/policy/manage")
+def admin_manage_policy(worker_id: str, payload: PolicyManagementRequest, authorization: str | None = Header(None)):
+    verify_admin_token(authorization)
+    _find_worker(worker_id)
+    
+    if payload.action == "remove":
+        delete_insured_customer_by_worker(worker_id)
+        delete_policy_by_worker(worker_id)
+        return {"message": "Worker policy removed successfully"}
+    
+    # Add/Update policy
+    policy = upsert_policy({
+        "worker_id": worker_id,
+        "plan_name": payload.plan_name,
+        "coverage_hours": payload.coverage_hours,
+        "max_weekly_payout": payload.max_weekly_payout,
+    })
+    
+    # Also create/update insured customer record to make it "active" in UI
+    subscription_start = utc_now()
+    subscription_end = (datetime.fromisoformat(subscription_start.replace("Z", "+00:00")).replace(tzinfo=timezone.utc) + timedelta(weeks=4)).isoformat()
+    
+    delete_insured_customer_by_worker(worker_id)
+    create_insured_customer({
+        "worker_id": worker_id,
+        "policy_id": policy["id"],
+        "plan_name": payload.plan_name,
+        "premium_amount": 0.0, # Admin added is free or handled separately
+        "subscription_start": subscription_start,
+        "subscription_end": subscription_end,
+        "ip_location": "admin-action",
+        "all_worker_details": "Admin manual override",
+    })
+    
+    return {"message": "Worker policy updated successfully", "policy": policy}
 
 
 @app.post("/api/auth/qr-login")

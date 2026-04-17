@@ -171,3 +171,26 @@ class AutoSubscriptionRequest(BaseModel):
     plan_id: str = "basic"
     enabled: bool = True
 
+
+class WorkerUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    city: Optional[str] = None
+    platform: Optional[str] = None
+    kyc_status: Optional[str] = None
+    avg_daily_income: Optional[float] = None
+    weekly_active_days: Optional[int] = None
+
+
+class WalletAdjustmentRequest(BaseModel):
+    amount: float
+    reason: str = "Admin adjustment"
+
+
+class PolicyManagementRequest(BaseModel):
+    action: Literal["add", "remove"]
+    plan_name: Optional[str] = "Super Shield Plus"
+    coverage_hours: Optional[int] = 12
+    max_weekly_payout: Optional[float] = 3500.0
+
