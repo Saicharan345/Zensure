@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, AlertCircle, BadgeIndianRupee, Coins, RefreshCw, ShieldCheck, Zap } from 'lucide-react'
+import { Activity, AlertCircle, BadgeIndianRupee, Coins, RefreshCw, ShieldCheck, Wallet, Zap } from 'lucide-react'
 import { QRCode } from 'react-qr-code'
 
 export default function DashboardPage({ currentUser, apiUrl, adminToken }) {
@@ -8,7 +8,7 @@ export default function DashboardPage({ currentUser, apiUrl, adminToken }) {
   const [walletData, setWalletData] = useState(null)
   const [loadingAction, setLoadingAction] = useState('')
   const [message, setMessage] = useState('')
-  const [topUpAmount, setTopUpAmount] = useState(100)
+
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [planConsent, setPlanConsent] = useState(false)
   const [autoSub, setAutoSub] = useState(null)
@@ -83,45 +83,7 @@ export default function DashboardPage({ currentUser, apiUrl, adminToken }) {
     }
   }
 
-  const handleTopUp = async () => {
-    setLoadingAction('topup')
-    try {
-      await apiRequest('/api/user/zencoins/purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          worker_id: currentUser.id,
-          rupee_amount: Number(topUpAmount),
-        }),
-      })
-      setMessage(`Purchased ${topUpAmount} ZenCoins using mock Razorpay.`)
-      await loadData()
-    } catch (error) {
-      setMessage(error.message)
-    } finally {
-      setLoadingAction('')
-    }
-  }
 
-  const handleConvert = async (amount) => {
-    setLoadingAction('convert')
-    try {
-      await apiRequest('/api/user/zencoins/convert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          worker_id: currentUser.id,
-          zencoins: amount,
-        }),
-      })
-      setMessage(`Converted ${amount} ZenCoins back to INR.`)
-      await loadData()
-    } catch (error) {
-      setMessage(error.message)
-    } finally {
-      setLoadingAction('')
-    }
-  }
 
   const handleRegenerateQr = async () => {
     setLoadingAction('qr')
@@ -489,49 +451,16 @@ export default function DashboardPage({ currentUser, apiUrl, adminToken }) {
           </div>
 
           <div className="glass-card p-8">
-            <h2 className="mb-6 text-2xl font-bold text-white">ZenCoins Wallet</h2>
-            <div className="rounded-xl border border-white/10 bg-slate-900/50 p-5">
-              <p className="text-sm text-slate-400">Top up your wallet first, then subscribe directly with ZenCoins from the plan details section.</p>
-              <label className="mt-4 block text-sm font-medium text-slate-200">Top-up Amount (INR)</label>
-              <input
-                type="number"
-                min="10"
-                step="10"
-                value={topUpAmount}
-                onChange={(event) => setTopUpAmount(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-              />
-              <button
-                onClick={handleTopUp}
-                disabled={loadingAction === 'topup'}
-                className="mt-4 w-full rounded-xl bg-cyan-500 px-4 py-3 font-semibold text-white transition hover:bg-cyan-600 disabled:bg-slate-700"
-              >
-                {loadingAction === 'topup' ? 'Processing...' : 'Buy ZenCoins'}
-              </button>
-              <button
-                onClick={() => handleConvert(Math.min(50, walletBalance))}
-                disabled={loadingAction === 'convert' || walletBalance <= 0}
-                className="mt-3 w-full rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 font-semibold text-emerald-100 transition hover:bg-emerald-500/20 disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
-              >
-                {loadingAction === 'convert' ? 'Converting...' : `Convert up to ${Math.min(50, walletBalance)} ZenCoins`}
-              </button>
+            <div className="flex items-center gap-3 mb-4">
+              <Wallet className="h-6 w-6 text-cyan-400" />
+              <h2 className="text-2xl font-bold text-white">ZenCoins</h2>
             </div>
-
-            <div className="mt-6">
-              <h3 className="mb-3 text-lg font-semibold text-white">Recent Wallet Activity</h3>
-              <div className="space-y-3">
-                {(walletData.transactions || []).slice(0, 6).map((entry) => (
-                  <div key={entry.id} className="rounded-xl border border-white/10 bg-slate-900/40 p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium capitalize text-white">{String(entry.transaction_type).replace(/_/g, ' ')}</p>
-                      <p className={entry.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                        {entry.amount >= 0 ? '+' : ''}{entry.amount} ZC
-                      </p>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-400">Balance after: {entry.balance_after} ZC</p>
-                  </div>
-                ))}
-              </div>
+            <div className="rounded-xl border border-white/10 bg-slate-900/50 p-5 text-center">
+              <p className="text-4xl font-bold text-white">{walletBalance} <span className="text-lg text-cyan-400">ZC</span></p>
+              <p className="mt-2 text-sm text-slate-400">Current Balance</p>
+              <a href="/wallet" className="mt-4 inline-block rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-white transition hover:bg-cyan-600">
+                Manage Wallet →
+              </a>
             </div>
           </div>
         </div>
