@@ -79,7 +79,13 @@ export default function LoginPage({ onLogin, apiUrl }) {
 
   const finishLogin = (payload, successMessage) => {
     setBanner(successMessage)
-    onLogin(payload.session?.worker || payload.dashboard?.worker)
+    // The unified login endpoint returns { role, user, token, session, dashboard }
+    // The register endpoint returns { worker, session }
+    // App.jsx handleLogin expects { role, user, token? }
+    const role = payload.role || payload.session?.role || 'worker'
+    const user = payload.user || payload.worker || payload.session?.worker || payload.dashboard?.worker
+    const token = payload.token || payload.session?.session_token
+    onLogin({ role, user, token })
   }
 
   const handleLogin = async (event) => {
