@@ -296,6 +296,38 @@ def clear_all_data() -> None:
 def seed_database() -> None:
     clear_all_data()
     seed_admin_account("admin@gmail.com", "adminxyz")
+    seed_default_worker()
+
+
+def seed_default_worker() -> None:
+    """Creates a default worker for easier testing/development."""
+    default_worker = {
+        "id": "worker-demo-001",
+        "name": "Bagadi Sai",
+        "email": "worker@zensure.io",
+        "email_verified": True,
+        "phone": "+91 9876543210",
+        "password": "workerpassword",
+        "city": "Hyderabad",
+        "platform": "Swiggy",
+        "zone_id": "hyderabad",
+        "avg_daily_income": 850.0,
+        "weekly_active_days": 6,
+        "on_time_rate": 0.94,
+        "consistency_score": 0.88,
+        "historic_claims": 0,
+        "gps_jump_risk": 0.05,
+        "ip_mismatch_count": 0,
+        "activity_spike_score": 0.1,
+        "role": "worker",
+        "kyc_status": "verified",
+        "platform_connected": True,
+        "connected_since": utc_now(),
+        "qr_version": 1,
+        "qr_secret": "demo-secret-key-123",
+        "qr_rotated_at": utc_now(),
+    }
+    create_worker(default_worker)
 
 
 def list_workers() -> list[dict[str, Any]]:

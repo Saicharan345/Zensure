@@ -71,14 +71,33 @@ def decode_qr_payload(qr_data: str) -> dict:
 
 def sanitize_worker(worker: dict) -> dict:
     excluded = {"password", "qr_secret"}
+    # Ensure role is always present in the returned worker object
+    worker.setdefault("role", "worker")
     return {key: value for key, value in worker.items() if key not in excluded}
 
 
 def create_session(worker: dict, method: str = "password") -> dict:
     worker["last_login_at"] = utc_now()
+    role = worker.get("role", "worker")
     return {
-        "session_token": token_urlsafe(24),
+        "session_token": f"{role}-session-{token_urlsafe(24)}",
+        "role": role,
         "login_method": method,
         "issued_at": utc_now(),
         "worker": sanitize_worker(worker),
+    }
+
+
+def create_admin_session(admin: dict) -> dict:
+    """Specialized session creation for administrators."""
+    return {
+        "session_token": f"admin-session-{token_urlsafe(24)}",
+        "role": "admin",
+        "login_method": "password",
+        "issued_at": utc_now(),
+        "admin": {
+            "id": admin["admin_id"],
+            "email": admin["email"],
+            "role": "admin"
+        }
     }

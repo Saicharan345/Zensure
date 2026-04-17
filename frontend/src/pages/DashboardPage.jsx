@@ -229,8 +229,24 @@ export default function DashboardPage({ currentUser, apiUrl, adminToken }) {
 
   if (!dashboard || !walletData) {
     return (
-      <div className="glass-card p-12 text-center">
-        <p className="text-slate-400">Loading dashboard...</p>
+      <div className="space-y-6">
+        {message ? (
+          <div className="rounded-xl border border-rose-400/20 bg-rose-500/10 px-6 py-4 text-rose-100">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-rose-400" />
+              <p>{message}</p>
+            </div>
+            <button 
+              onClick={() => { setMessage(''); loadData().catch(e => setMessage(e.message)) }}
+              className="mt-3 text-sm font-medium text-rose-400 hover:text-rose-300 underline"
+            >
+              Try again
+            </button>
+          </div>
+        ) : null}
+        <div className="glass-card p-12 text-center">
+          <p className="text-slate-400">Loading dashboard...</p>
+        </div>
       </div>
     )
   }

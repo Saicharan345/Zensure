@@ -20,6 +20,7 @@ from typing import Any
 
 from app.data.mock_data import ANOMALY_TEMPLATES, ZONE_LOCATIONS, ZONE_SIGNALS
 from app.services.auth_engine import utc_now
+from app.services.weather_api import fetch_live_signals
 from app.services.database import (
     create_anomaly_event,
     create_payout_ledger_entry,
@@ -87,7 +88,7 @@ def run_aiims_decision(worker: dict, policy: dict, zone: dict, scenario: dict, s
 
 # ---- Stage 1: Monitoring (Deep AI Anomaly Classifier) ----
 
-def monitoring_layer(anomaly_type: str, zone_id: str,
+async def monitoring_layer(anomaly_type: str, zone_id: str,
                      severity: float | None = None,
                      hours_affected: float | None = None,
                      location_name: str | None = None,
@@ -109,12 +110,24 @@ def monitoring_layer(anomaly_type: str, zone_id: str,
     actual_severity = severity if severity is not None else template["default_severity"]
     actual_hours = hours_affected if hours_affected is not None else template["default_hours"]
 
+    # ---- Real-Time API Integration ----
+    zone_data = ZONE_SIGNALS.get(zone_id, {})
+    live_signals = {}
+    if severity is None:
+        live_signals = await fetch_live_signals(zone_data.get("latitude", 0), zone_data.get("longitude", 0))
+        # Map AQI/Rain to severity if not provided by admin
+        if anomaly_type == "heavy_rainfall":
+            actual_severity = live_signals.get("flood_risk", actual_severity)
+        elif anomaly_type == "high_aqi":
+            actual_severity = min(1.0, live_signals.get("aqi", 50) / 300.0)
+        elif anomaly_type == "flooding":
+            actual_severity = live_signals.get("flood_risk", actual_severity)
+    
     # Edge case: Clamp severity and hours to valid ranges
     actual_severity = max(0.0, min(1.0, actual_severity))
     actual_hours = max(0.5, min(24.0, actual_hours))
 
     # Deep model input: [severity, hours_normalized, zone_risk_factor, env_factor]
-    zone_data = ZONE_SIGNALS.get(zone_id, {})
     zone_risk_factor = max(0.0, min(1.0, float(zone_data.get("flood_risk", 0.5))))
     env_factor = max(0.0, min(1.0, actual_severity * 0.7 + float(zone_data.get("flood_risk", 0)) * 0.3))
 
@@ -154,6 +167,7 @@ def monitoring_layer(anomaly_type: str, zone_id: str,
         "layer": "monitoring",
         "status": "anomaly_detected",
         "event": event,
+        "live_signals": live_signals,
         "ai_trace": {
             "model": AIIMS_MONITOR_MODEL.name,
             "architecture": "4→8→6→7 (Deep Classifier)",
@@ -240,7 +254,7 @@ def analyzing_layer(event: dict[str, Any]) -> dict[str, Any]:
 
 # ---- Stage 3: Fraud (5-Technique AI Ensemble Detection) ----
 
-def fraud_layer(worker_info: dict, event: dict) -> dict[str, Any]:
+def fraud_layer(worker_info: dict, event: dict, live_signals: dict | None = None) -> dict[str, Any]:
     """
     Multi-technique AI fraud detection using ensemble of 5 specialized models:
 
@@ -394,6 +408,21 @@ def fraud_layer(worker_info: dict, event: dict) -> dict[str, Any]:
         points_to_add = 1.0
     elif fraud_prob > 0.4:
         points_to_add = 0.5
+
+    # ---- Technique 6: Environmental Corroboration (Live API check) ----
+    if live_signals:
+        anomaly_type = event.get("anomaly_type", "").lower()
+        if "rain" in anomaly_type or "flood" in anomaly_type:
+            if live_signals.get("rainfall_mm", 0) < 1.0 and live_signals.get("flood_risk", 0) < 0.1:
+                points_to_add += 3.0 # Immediate severe impact
+                techniques["statistical"]["risk"] = "critical"
+                techniques["statistical"]["detail"] += " | CRITICAL: Live API reports NO weather anomalies"
+        
+        if "aqi" in anomaly_type:
+            if live_signals.get("aqi", 0) < 100:
+                points_to_add += 2.0
+                techniques["statistical"]["risk"] = "critical"
+                techniques["statistical"]["detail"] += f" | CRITICAL: Live AQI is healthy ({live_signals['aqi']})"
 
     # ---- AUTO-UPDATE SPIL FRAUD SCORE ----
     # When AIIMS detects ANY fraud signal, auto-increase the fraud score
@@ -622,7 +651,7 @@ def payout_layer(worker_id: str, payout_amount: float, event_id: str,
 # ORCHESTRATOR — Runs all 5 AI stages for an anomaly event
 # =====================================================================
 
-def run_aiims_pipeline(anomaly_type: str, zone_id: str,
+async def run_aiims_pipeline(anomaly_type: str, zone_id: str,
                        severity: float | None = None,
                        hours_affected: float | None = None,
                        location_name: str | None = None,
@@ -636,7 +665,7 @@ def run_aiims_pipeline(anomaly_type: str, zone_id: str,
     """
 
     # ---- Stage 1: Monitoring (Deep Anomaly Classifier) ----
-    monitoring = monitoring_layer(anomaly_type, zone_id, severity, hours_affected, location_name, triggered_by)
+    monitoring = await monitoring_layer(anomaly_type, zone_id, severity, hours_affected, location_name, triggered_by)
     if "error" in monitoring:
         return {"error": monitoring["error"], "layers": {"monitoring": monitoring}}
 
@@ -668,10 +697,12 @@ def run_aiims_pipeline(anomaly_type: str, zone_id: str,
     worker_results = []
     total_payout = 0
     fraud_blocked_count = 0
+    
+    live_signals = monitoring.get("live_signals") # This isn't there yet, I'll add it to monitoring
 
     for worker_info in analysis["eligible_workers"]:
         # Stage 3: Fraud Detection (5-Technique AI Ensemble)
-        fraud = fraud_layer(worker_info, event)
+        fraud = fraud_layer(worker_info, event, live_signals=live_signals)
         if not fraud["passed"]:
             fraud_blocked_count += 1
             worker_results.append({
