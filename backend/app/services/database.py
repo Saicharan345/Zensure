@@ -266,6 +266,9 @@ def init_database() -> None:
             """
         )
 
+    # Always ensure the default admin account exists after init
+    seed_admin_account("admin@gmail.com", "adminxyz")
+
 
 def seed_admin_account(email: str, password: str) -> None:
     with _get_connection() as connection:
