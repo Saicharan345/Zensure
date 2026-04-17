@@ -77,12 +77,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Admin Login Route - Always accessible */}
-        <Route path="/admin-login" element={<AdminLoginPage onLogin={handleLogin} apiUrl={API_URL} />} />
-
         {/* Public/Worker/Admin Routing */}
         {(!currentUser && !adminUser) ? (
-          <Route path="/*" element={<LoginPage onLogin={handleLogin} apiUrl={API_URL} />} />
+          <>
+            <Route path="/admin-login" element={<AdminLoginPage onLogin={handleLogin} apiUrl={API_URL} />} />
+            <Route path="/*" element={<LoginPage onLogin={handleLogin} apiUrl={API_URL} />} />
+          </>
         ) : adminUser ? (
           /* Admin Specific Routes */
           <Route

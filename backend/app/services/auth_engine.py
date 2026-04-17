@@ -98,6 +98,7 @@ def create_admin_session(admin: dict) -> dict:
         "admin": {
             "id": admin["admin_id"],
             "email": admin["email"],
+            "name": "ZENSURE Administrator",
             "role": "admin"
         }
     }
