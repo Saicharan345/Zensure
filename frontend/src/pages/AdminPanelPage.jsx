@@ -698,21 +698,52 @@ function SpilRegistryView({ apiRequest, setSuccess, setError }) {
                 <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                     <Plus className="h-5 w-5 text-cyan-400" /> Register New External Worker (SPIL)
                 </h3>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <EditField label="External ID" value={form.external_worker_id} onChange={v => setForm({...form, external_worker_id: v})} />
-                    <EditField label="Name" value={form.name} onChange={v => setForm({...form, name: v})} />
-                    <EditField label="Platform" value={form.platform} type="select" options={['Swiggy', 'Zomato', 'Zepto', 'Blinkit']} onChange={v => setForm({...form, platform: v})} />
-                    <EditField label="Zone" value={form.location_name} type="select" options={LOCATION_ZONES} onChange={v => setForm({...form, location_name: v})} />
-                    <EditField label="Weekly Salary" value={form.salary_per_week} type="number" onChange={v => setForm({...form, salary_per_week: Number(v)})} />
-                    <EditField label="Reliability" value={form.reliability_score} type="number" onChange={v => setForm({...form, reliability_score: Number(v)})} />
-                    <div className="md:col-span-3 flex justify-end">
-                        <button 
-                            type="submit"
-                            disabled={creating}
-                            className="bg-cyan-500 text-white px-8 py-2 rounded-xl font-bold hover:bg-cyan-600 transition disabled:bg-slate-700"
-                        >
-                            {creating ? 'Registering...' : 'Register Worker'}
-                        </button>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Identity & Platform Section */}
+                    <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                        <p className="text-xs font-bold text-cyan-400 uppercase tracking-widest mb-4">I. Identity & Platform Details</p>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <EditField label="External ID" value={form.external_worker_id} onChange={v => setForm({...form, external_worker_id: v})} />
+                            <EditField label="Worker Name" value={form.name} onChange={v => setForm({...form, name: v})} />
+                            <EditField label="Platform" value={form.platform} type="select" options={['Swiggy', 'Zomato', 'Zepto', 'Blinkit']} onChange={v => setForm({...form, platform: v})} />
+                            <EditField label="Zone (Location)" value={form.location_name} type="select" options={LOCATION_ZONES} onChange={v => setForm({...form, location_name: v})} />
+                        </div>
+                    </div>
+
+                    {/* Activity Metrics Section */}
+                    <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                        <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-4">II. Activity & Performance (ML Inputs)</p>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <EditField label="Weekly Salary" value={form.salary_per_week} type="number" onChange={v => setForm({...form, salary_per_week: Number(v)})} />
+                            <EditField label="Deliveries/Week" value={form.deliveries_per_week} type="number" onChange={v => setForm({...form, deliveries_per_week: Number(v)})} />
+                            <EditField label="Avg Weekly Hours" value={form.avg_working_hours_per_week} type="number" onChange={v => setForm({...form, avg_working_hours_per_week: Number(v)})} />
+                            <EditField label="Rating (1-5)" value={form.rating} type="number" onChange={v => setForm({...form, rating: Number(v)})} />
+                            <EditField label="Night Shift %" value={form.night_shift_percentage} type="number" onChange={v => setForm({...form, night_shift_percentage: Number(v)})} />
+                            <EditField label="Tenure (Years)" value={form.platform_tenure_years} type="number" onChange={v => setForm({...form, platform_tenure_years: Number(v)})} />
+                            <EditField label="Safety Score (0-10)" value={form.safety_behavior_score} type="number" onChange={v => setForm({...form, safety_behavior_score: Number(v)})} />
+                            <EditField label="Claim History" value={form.insurance_claimed_count} type="number" onChange={v => setForm({...form, insurance_claimed_count: Number(v)})} />
+                        </div>
+                    </div>
+
+                    {/* Risk & Integrity Section */}
+                    <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                        <p className="text-xs font-bold text-rose-400 uppercase tracking-widest mb-4">III. Integrity & Risk Profile</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <EditField label="Location Risk (0-1)" value={form.location_risk_score} type="number" onChange={v => setForm({...form, location_risk_score: Number(v)})} />
+                            <EditField label="Fraud Alert" value={form.fraud_flag ? 'TRUE' : 'FALSE'} type="select" options={['FALSE', 'TRUE']} onChange={v => setForm({...form, fraud_flag: v === 'TRUE'})} />
+                            <div className="flex items-end">
+                                <button 
+                                    type="submit"
+                                    disabled={creating}
+                                    className="w-full bg-cyan-500 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-cyan-600 transition shadow-lg shadow-cyan-500/20 disabled:bg-slate-700"
+                                >
+                                    {creating ? 'Registering Worker...' : 'Register Worker'}
+                                </button>
+                            </div>
+                        </div>
+                        <p className="mt-4 text-[10px] text-slate-500 italic">
+                            * AQI, Weather, and Restriction risks are backend-computed based on the selected Zone.
+                        </p>
                     </div>
                 </form>
             </div>
