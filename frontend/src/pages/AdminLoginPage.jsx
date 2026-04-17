@@ -21,7 +21,7 @@ export default function AdminLoginPage({ onLogin, apiUrl }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Access Denied')
       
-      onLogin(data.token)
+      onLogin({ role: 'admin', user: data.admin, token: data.token })
     } catch (err) {
       setError(err.message)
     } finally {

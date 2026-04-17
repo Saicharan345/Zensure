@@ -439,9 +439,11 @@ def register_worker(payload: WorkerRegistration):
 
 @app.post("/api/auth/login")
 def login_unified(payload: LoginRequest):
+    print(f"[LOGIN] Attempt for identifier: {payload.identifier}")
     # 1. Check if it's a worker
     worker = get_worker_by_identifier(payload.identifier)
     if worker:
+        print(f"[LOGIN] Match found in WORKERS for {payload.identifier}")
         if worker.get("password") != payload.password:
             raise HTTPException(status_code=401, detail="Invalid password")
         
@@ -472,6 +474,7 @@ def login_unified(payload: LoginRequest):
     # 2. Check if it's an admin
     admin = get_admin_by_email(payload.identifier)
     if admin:
+        print(f"[LOGIN] Match found in ADMINS for {payload.identifier}")
         if admin["password"] != payload.password:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         

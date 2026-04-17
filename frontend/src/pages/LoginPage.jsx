@@ -341,8 +341,9 @@ export default function LoginPage({ onLogin, apiUrl }) {
               </form>
             ) : null}
 
-            <div className="mt-4 rounded-xl border border-white/10 bg-slate-900/40 px-4 py-3 text-sm text-slate-300">
-              <strong>Location status:</strong> {locationState.status}
+            <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-slate-900/40 px-4 py-3 text-sm">
+              <span className="text-slate-300"><strong>Location status:</strong> {locationState.status}</span>
+              <a href="/admin-login" className="text-cyan-400 hover:text-cyan-300 font-medium">Admin Portal →</a>
             </div>
           </div>
         </div>

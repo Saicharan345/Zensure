@@ -45,6 +45,14 @@ export default function App() {
   const [currentAdminToken, setCurrentAdminToken] = useState(() => localStorage.getItem('zensure_admin_token'))
 
   const handleLogin = useCallback((authData) => {
+    // Clear everything first to prevent session bleeding
+    localStorage.removeItem('zensure_auth')
+    localStorage.removeItem('zensure_admin_token')
+    localStorage.removeItem('zensure_admin_auth')
+    setCurrentUser(null)
+    setAdminUser(null)
+    setCurrentAdminToken(null)
+
     if (authData.role === 'admin') {
       setCurrentAdminToken(authData.token)
       setAdminUser(authData.user)
@@ -63,12 +71,16 @@ export default function App() {
     localStorage.removeItem('zensure_auth')
     localStorage.removeItem('zensure_admin_token')
     localStorage.removeItem('zensure_admin_auth')
+    window.location.href = '/' // Force reload to clear state
   }, [])
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Routes - Only one login page is now needed */}
+        {/* Admin Login Route - Always accessible */}
+        <Route path="/admin-login" element={<AdminLoginPage onLogin={handleLogin} apiUrl={API_URL} />} />
+
+        {/* Public/Worker/Admin Routing */}
         {(!currentUser && !adminUser) ? (
           <Route path="/*" element={<LoginPage onLogin={handleLogin} apiUrl={API_URL} />} />
         ) : adminUser ? (
